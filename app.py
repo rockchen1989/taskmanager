@@ -1,8 +1,4 @@
 import streamlit as st
-import pandas as pd
-import gspread
-from oauth2client.service_account import ServiceAccountCredentials
-from datetime import datetime
 
 # 页面配置 (必须是第一个 Streamlit 调用)
 st.set_page_config(
@@ -11,6 +7,12 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
+
+# 在页面配置之后再导入其他模块和进行调试
+import pandas as pd
+import gspread
+from oauth2client.service_account import ServiceAccountCredentials
+from datetime import datetime
 
 # 调试输出：打印所有 secrets 内容，检查是否包含 sheet_key
 st.write(st.secrets)
