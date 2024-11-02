@@ -31,6 +31,7 @@ def init_db():
     return conn
 
 # 从数据库中加载数据
+@st.cache_data(ttl=1)
 def load_data():
     conn = init_db()
     df = pd.read_sql("SELECT * FROM tasks", conn)
@@ -72,7 +73,7 @@ def complete_task(task_id):
     conn.close()
 
 # 显示任务详情
-def display_task_details(task, rerun_trigger):
+def display_task_details(task):
     with st.expander(f"📋 {task['task']}", expanded=False):
         col1, col2 = st.columns(2)
         with col1:
@@ -95,7 +96,7 @@ def display_task_details(task, rerun_trigger):
         with col1:
             if st.button("删除", key=f"delete_{task['id']}"):
                 delete_task(task['id'])
-                rerun_trigger = True  # 标记需要重新加载
+                st.experimental_rerun()
         with col2:
             if st.button("修改", key=f"edit_{task['id']}"):
                 with st.form(f"edit_form_{task['id']}"):
@@ -112,32 +113,23 @@ def display_task_details(task, rerun_trigger):
                     
                     if submit_button:
                         update_task(task['id'], new_task, new_start_date, new_end_date, new_people, new_status, new_importance, new_view, new_notes, new_attachments)
-                        rerun_trigger = True  # 标记需要重新加载
+                        st.success("任务已修改！")
+                        st.experimental_rerun()  # 通过 rerun 刷新页面
         with col3:
             if st.button("完成", key=f"complete_{task['id']}"):
                 complete_task(task['id'])
-                rerun_trigger = True  # 标记需要重新加载
-
-    return rerun_trigger
+                st.experimental_rerun()
 
 # 页面主逻辑
 def main():
     st.title("🎯 Task Manager")
     
-    # 使用 Streamlit 的 session state 追踪页面是否需要刷新
-    if "rerun_trigger" not in st.session_state:
-        st.session_state.rerun_trigger = False
-
     # 侧边栏视图选择
     st.sidebar.title("视图选择")
     view_type = st.sidebar.radio("选择视图类型", ["时间视图", "优先级视图", "已完成任务"])
 
     # 加载数据
-    if st.session_state.rerun_trigger:
-        tasks = load_data()
-        st.session_state.rerun_trigger = False  # 重置刷新标志
-    else:
-        tasks = load_data()
+    tasks = load_data()
 
     # 任务视图展示
     if view_type == "时间视图":
@@ -147,33 +139,33 @@ def main():
             st.subheader("日视图 - 优先级分类")
             for priority in ["Urgent and Important", "Important and Not Urgent", "Not Important but Urgent", "Not Important and Not Urgent"]:
                 st.write(f"**{priority}**")
-                daily_tasks = tasks[(tasks['view'].str.lower() == 'daily') & (tasks['importance'] == priority)]
+                daily_tasks = tasks[(tasks['view'].str.lower() == 'daily') & (tasks['importance'] == priority) & (tasks['status'] != 'Complete')]
                 for _, task in daily_tasks.iterrows():
-                    st.session_state.rerun_trigger = display_task_details(task, st.session_state.rerun_trigger)
+                    display_task_details(task)
 
         with tab2:
             st.subheader("周视图 - 优先级分类")
             for priority in ["Urgent and Important", "Important and Not Urgent", "Not Important but Urgent", "Not Important and Not Urgent"]:
                 st.write(f"**{priority}**")
-                weekly_tasks = tasks[(tasks['view'].str.lower() == 'weekly') & (tasks['importance'] == priority)]
+                weekly_tasks = tasks[(tasks['view'].str.lower() == 'weekly') & (tasks['importance'] == priority) & (tasks['status'] != 'Complete')]
                 for _, task in weekly_tasks.iterrows():
-                    st.session_state.rerun_trigger = display_task_details(task, st.session_state.rerun_trigger)
+                    display_task_details(task)
 
         with tab3:
             st.subheader("月视图 - 优先级分类")
             for priority in ["Urgent and Important", "Important and Not Urgent", "Not Important but Urgent", "Not Important and Not Urgent"]:
                 st.write(f"**{priority}**")
-                monthly_tasks = tasks[(tasks['view'].str.lower() == 'monthly') & (tasks['importance'] == priority)]
+                monthly_tasks = tasks[(tasks['view'].str.lower() == 'monthly') & (tasks['importance'] == priority) & (tasks['status'] != 'Complete')]
                 for _, task in monthly_tasks.iterrows():
-                    st.session_state.rerun_trigger = display_task_details(task, st.session_state.rerun_trigger)
+                    display_task_details(task)
 
         with tab4:
             st.subheader("年视图 - 优先级分类")
             for priority in ["Urgent and Important", "Important and Not Urgent", "Not Important but Urgent", "Not Important and Not Urgent"]:
                 st.write(f"**{priority}**")
-                yearly_tasks = tasks[(tasks['view'].str.lower() == 'yearly') & (tasks['importance'] == priority)]
+                yearly_tasks = tasks[(tasks['view'].str.lower() == 'yearly') & (tasks['importance'] == priority) & (tasks['status'] != 'Complete')]
                 for _, task in yearly_tasks.iterrows():
-                    st.session_state.rerun_trigger = display_task_details(task, st.session_state.rerun_trigger)
+                    display_task_details(task)
 
     elif view_type == "优先级视图":
         priorities = [
@@ -184,10 +176,10 @@ def main():
         ]
         
         selected_priority = st.selectbox("选择优先级", priorities)
-        priority_tasks = tasks[tasks['importance'] == selected_priority]
+        priority_tasks = tasks[(tasks['importance'] == selected_priority) & (tasks['status'] != 'Complete')]
         
         for _, task in priority_tasks.iterrows():
-            st.session_state.rerun_trigger = display_task_details(task, st.session_state.rerun_trigger)
+            display_task_details(task)
 
     else:  # 已完成任务
         st.subheader("已完成任务")
@@ -200,7 +192,7 @@ def main():
             completed_tasks = completed_tasks.sort_values('importance')
         
         for _, task in completed_tasks.iterrows():
-            st.session_state.rerun_trigger = display_task_details(task, st.session_state.rerun_trigger)
+            display_task_details(task)
 
     # 新增任务表单
     st.sidebar.title("新增任务")
@@ -217,7 +209,7 @@ def main():
     if st.sidebar.button("添加任务"):
         save_data(task, start_date, end_date, people, status, importance, view, notes, attachments)
         st.sidebar.success("任务已添加！")
-        st.session_state.rerun_trigger = True  # 标记需要重新加载
+        st.experimental_rerun()  # 通过 rerun 刷新页面
 
 # 执行主函数
 if __name__ == "__main__":
