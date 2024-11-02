@@ -31,7 +31,6 @@ def init_db():
     return conn
 
 # 从数据库中加载数据
-@st.cache_data
 def load_data():
     conn = init_db()
     df = pd.read_sql("SELECT * FROM tasks", conn)
@@ -86,7 +85,7 @@ def display_task_details(task):
         # 添加删除任务按钮
         if st.button(f"删除任务 - {task['task']}", key=f"delete_{task['id']}"):
             delete_task(task['id'])
-            st.experimental_set_query_params(rerun='true')  # 通过 URL 参数实现页面刷新
+            st.experimental_rerun()  # 通过 rerun 刷新页面
         
         # 添加修改任务按钮
         if st.button(f"修改任务 - {task['task']}", key=f"edit_{task['id']}"):
@@ -105,7 +104,7 @@ def display_task_details(task):
                 if submit_button:
                     update_task(task['id'], new_task, new_start_date, new_end_date, new_people, new_status, new_importance, new_view, new_notes, new_attachments)
                     st.success("任务已修改！")
-                    st.experimental_set_query_params(rerun='true')  # 通过 URL 参数实现页面刷新
+                    st.experimental_rerun()  # 通过 rerun 刷新页面
 
 # 页面主逻辑
 def main():
@@ -126,7 +125,7 @@ def main():
             st.subheader("日视图 - 优先级分类")
             for priority in ["Urgent and Important", "Important and Not Urgent", "Not Important but Urgent", "Not Important and Not Urgent"]:
                 st.write(f"**{priority}**")
-                daily_tasks = tasks[(tasks['view'].str.lower() == 'daily') & (tasks['importance'] == priority)]
+                daily_tasks = tasks[(tasks['view'].str.lower().str.strip() == 'daily') & (tasks['importance'] == priority)]
                 for _, task in daily_tasks.iterrows():
                     display_task_details(task)
 
@@ -134,7 +133,7 @@ def main():
             st.subheader("周视图 - 优先级分类")
             for priority in ["Urgent and Important", "Important and Not Urgent", "Not Important but Urgent", "Not Important and Not Urgent"]:
                 st.write(f"**{priority}**")
-                weekly_tasks = tasks[(tasks['view'].str.lower() == 'weekly') & (tasks['importance'] == priority)]
+                weekly_tasks = tasks[(tasks['view'].str.lower().str.strip() == 'weekly') & (tasks['importance'] == priority)]
                 for _, task in weekly_tasks.iterrows():
                     display_task_details(task)
 
@@ -142,7 +141,7 @@ def main():
             st.subheader("月视图 - 优先级分类")
             for priority in ["Urgent and Important", "Important and Not Urgent", "Not Important but Urgent", "Not Important and Not Urgent"]:
                 st.write(f"**{priority}**")
-                monthly_tasks = tasks[(tasks['view'].str.lower() == 'monthly') & (tasks['importance'] == priority)]
+                monthly_tasks = tasks[(tasks['view'].str.lower().str.strip() == 'monthly') & (tasks['importance'] == priority)]
                 for _, task in monthly_tasks.iterrows():
                     display_task_details(task)
 
@@ -150,7 +149,7 @@ def main():
             st.subheader("年视图 - 优先级分类")
             for priority in ["Urgent and Important", "Important and Not Urgent", "Not Important but Urgent", "Not Important and Not Urgent"]:
                 st.write(f"**{priority}**")
-                yearly_tasks = tasks[(tasks['view'].str.lower() == 'yearly') & (tasks['importance'] == priority)]
+                yearly_tasks = tasks[(tasks['view'].str.lower().str.strip() == 'yearly') & (tasks['importance'] == priority)]
                 for _, task in yearly_tasks.iterrows():
                     display_task_details(task)
 
@@ -196,7 +195,7 @@ def main():
     if st.sidebar.button("添加任务"):
         save_data(task, start_date, end_date, people, status, importance, view, notes, attachments)
         st.sidebar.success("任务已添加！")
-        st.experimental_set_query_params(rerun='true')  # 通过 URL 参数实现页面刷新
+        st.experimental_rerun()  # 通过 rerun 刷新页面
 
 # 执行主函数
 if __name__ == "__main__":
