@@ -31,7 +31,6 @@ def init_db():
     return conn
 
 # 从数据库中加载数据
-@st.cache_data
 def load_data():
     conn = init_db()
     df = pd.read_sql("SELECT * FROM tasks", conn)
@@ -97,7 +96,7 @@ def main():
             st.subheader("日视图 - 优先级分类")
             for priority in ["Urgent and Important", "Important and Not Urgent", "Not Important but Urgent", "Not Important and Not Urgent"]:
                 st.write(f"**{priority}**")
-                daily_tasks = tasks[(tasks['view'].str.lower() == 'daily') & (tasks['importance'] == priority)]
+                daily_tasks = tasks[(tasks['view'].str.lower().str.strip() == 'daily') & (tasks['importance'] == priority)]
                 for _, task in daily_tasks.iterrows():
                     display_task_details(task)
 
@@ -105,7 +104,7 @@ def main():
             st.subheader("周视图 - 优先级分类")
             for priority in ["Urgent and Important", "Important and Not Urgent", "Not Important but Urgent", "Not Important and Not Urgent"]:
                 st.write(f"**{priority}**")
-                weekly_tasks = tasks[(tasks['view'].str.lower() == 'weekly') & (tasks['importance'] == priority)]
+                weekly_tasks = tasks[(tasks['view'].str.lower().str.strip() == 'weekly') & (tasks['importance'] == priority)]
                 for _, task in weekly_tasks.iterrows():
                     display_task_details(task)
 
@@ -113,7 +112,7 @@ def main():
             st.subheader("月视图 - 优先级分类")
             for priority in ["Urgent and Important", "Important and Not Urgent", "Not Important but Urgent", "Not Important and Not Urgent"]:
                 st.write(f"**{priority}**")
-                monthly_tasks = tasks[(tasks['view'].str.lower() == 'monthly') & (tasks['importance'] == priority)]
+                monthly_tasks = tasks[(tasks['view'].str.lower().str.strip() == 'monthly') & (tasks['importance'] == priority)]
                 for _, task in monthly_tasks.iterrows():
                     display_task_details(task)
 
@@ -121,7 +120,7 @@ def main():
             st.subheader("年视图 - 优先级分类")
             for priority in ["Urgent and Important", "Important and Not Urgent", "Not Important but Urgent", "Not Important and Not Urgent"]:
                 st.write(f"**{priority}**")
-                yearly_tasks = tasks[(tasks['view'].str.lower() == 'yearly') & (tasks['importance'] == priority)]
+                yearly_tasks = tasks[(tasks['view'].str.lower().str.strip() == 'yearly') & (tasks['importance'] == priority)]
                 for _, task in yearly_tasks.iterrows():
                     display_task_details(task)
 
