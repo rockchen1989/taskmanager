@@ -4,6 +4,9 @@ import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 from datetime import datetime
 
+# 调试输出：打印所有 secrets 内容，检查是否包含 sheet_key
+st.write(st.secrets)
+
 # 页面配置
 st.set_page_config(
     page_title="Task Manager",
