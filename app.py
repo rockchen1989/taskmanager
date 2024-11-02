@@ -14,6 +14,14 @@ import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 from datetime import datetime
 
+# 调试输出：检查是否成功加载 sheet_key 和 gcp_service_account
+try:
+    sheet_key = st.secrets["sheet_key"]
+    gcp_service_account = st.secrets["gcp_service_account"]
+    st.write("成功加载 sheet_key 和 gcp_service_account")
+except KeyError as e:
+    st.error(f"密钥加载错误: 缺少 {e}，请检查 Streamlit Cloud 的 Secrets 配置")
+
 # 读取 sheet_key 和 gcp_service_account
 try:
     sheet_key = st.secrets["sheet_key"]
