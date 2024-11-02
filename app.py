@@ -62,7 +62,6 @@ def delete_task(task_id):
     c.execute("DELETE FROM tasks WHERE id=?", (task_id,))
     conn.commit()
     conn.close()
-    st.experimental_rerun()
 
 # 将任务状态更新为完成
 def complete_task(task_id):
@@ -71,7 +70,6 @@ def complete_task(task_id):
     c.execute("UPDATE tasks SET status='Complete' WHERE id=?", (task_id,))
     conn.commit()
     conn.close()
-    st.experimental_rerun()
 
 # 显示任务详情
 def display_task_details(task):
@@ -97,6 +95,7 @@ def display_task_details(task):
         with col1:
             if st.button("删除", key=f"delete_{task['id']}"):
                 delete_task(task['id'])
+                st.experimental_rerun()  # 使用 rerun 使页面刷新，避免数据残留
         with col2:
             if st.button("修改", key=f"edit_{task['id']}"):
                 with st.form(f"edit_form_{task['id']}"):
@@ -114,10 +113,11 @@ def display_task_details(task):
                     if submit_button:
                         update_task(task['id'], new_task, new_start_date, new_end_date, new_people, new_status, new_importance, new_view, new_notes, new_attachments)
                         st.success("任务已修改！")
-                        st.experimental_rerun()
+                        st.experimental_rerun()  # 使用 rerun 刷新页面
         with col3:
             if st.button("完成", key=f"complete_{task['id']}"):
                 complete_task(task['id'])
+                st.experimental_rerun()  # 使用 rerun 刷新页面
 
 # 页面主逻辑
 def main():
