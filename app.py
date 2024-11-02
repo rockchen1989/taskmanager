@@ -63,7 +63,7 @@ def delete_task(task_id):
     c.execute("DELETE FROM tasks WHERE id=?", (task_id,))
     conn.commit()
     conn.close()
-    st.experimental_rerun()
+    st.experimental_set_query_params(rerun=True)
 
 # 将任务状态更新为完成
 def complete_task(task_id):
@@ -72,7 +72,7 @@ def complete_task(task_id):
     c.execute("UPDATE tasks SET status='Complete' WHERE id=?", (task_id,))
     conn.commit()
     conn.close()
-    st.experimental_rerun()
+    st.experimental_set_query_params(rerun=True)
 
 # 显示任务详情
 def display_task_details(task):
@@ -115,7 +115,7 @@ def display_task_details(task):
                     if submit_button:
                         update_task(task['id'], new_task, new_start_date, new_end_date, new_people, new_status, new_importance, new_view, new_notes, new_attachments)
                         st.success("任务已修改！")
-                        st.experimental_rerun()  # 通过 rerun 刷新页面
+                        st.experimental_set_query_params(rerun=True)  # 通过 rerun 刷新页面
         with col3:
             if st.button("完成", key=f"complete_{task['id']}"):
                 complete_task(task['id'])
@@ -209,7 +209,7 @@ def main():
     if st.sidebar.button("添加任务"):
         save_data(task, start_date, end_date, people, status, importance, view, notes, attachments)
         st.sidebar.success("任务已添加！")
-        st.experimental_rerun()  # 通过 rerun 刷新页面
+        st.experimental_set_query_params(rerun=True)  # 通过 rerun 刷新页面
 
 # 执行主函数
 if __name__ == "__main__":
