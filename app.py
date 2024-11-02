@@ -4,7 +4,7 @@ import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 from datetime import datetime
 
-# 页面配置（确保这是第一个 Streamlit 调用）
+# 页面配置 (必须是第一个 Streamlit 调用)
 st.set_page_config(
     page_title="Task Manager",
     page_icon="✅",
@@ -12,7 +12,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# 调试输出：打印所有 secrets 内容，检查是否包含 sheet_key（完成调试后可以移除此行）
+# 调试输出：打印所有 secrets 内容，检查是否包含 sheet_key
 st.write(st.secrets)
 
 # 设置页面样式
