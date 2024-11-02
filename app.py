@@ -96,7 +96,7 @@ def display_task_details(task):
         with col1:
             if st.button("删除", key=f"delete_{task['id']}"):
                 delete_task(task['id'])
-                st.experimental_update()  # 刷新页面以立刻反映删除操作
+                st.experimental_rerun()  # 刷新页面以立刻反映删除操作
         with col2:
             if st.button("修改", key=f"edit_{task['id']}"):
                 with st.form(f"edit_form_{task['id']}"):
