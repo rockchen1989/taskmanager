@@ -47,6 +47,14 @@ def save_data(task, start_date, end_date, people, status, importance, view, note
     conn.commit()
     conn.close()
 
+# 从数据库中删除任务
+def delete_task(task_id):
+    conn = init_db()
+    c = conn.cursor()
+    c.execute("DELETE FROM tasks WHERE id=?", (task_id,))
+    conn.commit()
+    conn.close()
+
 # 显示任务详情
 def display_task_details(task):
     with st.expander(f"📋 {task['task']}", expanded=False):
@@ -65,6 +73,10 @@ def display_task_details(task):
         
         if task['attachments']:
             st.write("**附件:**", task['attachments'])
+        # 添加删除任务按钮
+        if st.button(f"删除任务 - {task['task']}", key=f"delete_{task['id']}"):
+            delete_task(task['id'])
+            st.experimental_set_query_params(rerun='true')  # 通过 URL 参数实现页面刷新
 
 # 页面主逻辑
 def main():
@@ -143,7 +155,7 @@ def main():
     if st.sidebar.button("添加任务"):
         save_data(task, start_date, end_date, people, status, importance, view, notes, attachments)
         st.sidebar.success("任务已添加！")
-        st.experimental_rerun()  # 刷新页面，显示新任务
+        st.experimental_set_query_params(rerun='true')  # 通过 URL 参数实现页面刷新
 
 # 执行主函数
 if __name__ == "__main__":
