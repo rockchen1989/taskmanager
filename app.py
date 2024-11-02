@@ -31,6 +31,7 @@ def init_db():
     return conn
 
 # 从数据库中加载数据
+@st.cache_data(ttl=60)
 def load_data():
     conn = init_db()
     df = pd.read_sql("SELECT * FROM tasks", conn)
@@ -62,6 +63,7 @@ def delete_task(task_id):
     c.execute("DELETE FROM tasks WHERE id=?", (task_id,))
     conn.commit()
     conn.close()
+    st.experimental_set_query_params(rerun='true')
 
 # 将任务状态更新为完成
 def complete_task(task_id):
@@ -70,6 +72,7 @@ def complete_task(task_id):
     c.execute("UPDATE tasks SET status='Complete' WHERE id=?", (task_id,))
     conn.commit()
     conn.close()
+    st.experimental_set_query_params(rerun='true')
 
 # 显示任务详情
 def display_task_details(task):
@@ -95,14 +98,29 @@ def display_task_details(task):
         with col1:
             if st.button("删除", key=f"delete_{task['id']}"):
                 delete_task(task['id'])
-                st.session_state['rerun'] = True  # 标记需要重新运行
+                st.experimental_set_query_params(rerun='true')
         with col2:
             if st.button("修改", key=f"edit_{task['id']}"):
-                st.session_state['edit_task_id'] = task['id']
+                with st.form(f"edit_form_{task['id']}"):
+                    new_task = st.text_input("任务名称", value=task['task'])
+                    new_start_date = st.date_input("开始时间", value=pd.to_datetime(task['start_date']))
+                    new_end_date = st.date_input("结束时间", value=pd.to_datetime(task['end_date']))
+                    new_people = st.text_input("负责人", value=task['people'])
+                    new_status = st.selectbox("状态", ["Plan", "In Progress", "Stuck", "Complete"], index=["Plan", "In Progress", "Stuck", "Complete"].index(task['status']))
+                    new_importance = st.selectbox("优先级", ["Urgent and Important", "Important and Not Urgent", "Not Important but Urgent", "Not Important and Not Urgent"], index=["Urgent and Important", "Important and Not Urgent", "Not Important but Urgent", "Not Important and Not Urgent"].index(task['importance']))
+                    new_view = st.selectbox("视图", ["daily", "weekly", "monthly", "yearly"], index=["daily", "weekly", "monthly", "yearly"].index(task['view']))
+                    new_notes = st.text_area("备注", value=task['notes'])
+                    new_attachments = st.text_input("附件", value=task['attachments'])
+                    submit_button = st.form_submit_button(label="保存修改")
+                    
+                    if submit_button:
+                        update_task(task['id'], new_task, new_start_date, new_end_date, new_people, new_status, new_importance, new_view, new_notes, new_attachments)
+                        st.success("任务已修改！")
+                        st.experimental_set_query_params(rerun='true')  # 通过 rerun 刷新页面
         with col3:
             if st.button("完成", key=f"complete_{task['id']}"):
                 complete_task(task['id'])
-                st.session_state['rerun'] = True  # 标记需要重新运行
+                st.experimental_set_query_params(rerun='true')
 
 # 页面主逻辑
 def main():
@@ -114,27 +132,6 @@ def main():
 
     # 加载数据
     tasks = load_data()
-
-    # 如果有需要编辑的任务，显示编辑表单
-    if 'edit_task_id' in st.session_state:
-        task_to_edit = tasks[tasks['id'] == st.session_state['edit_task_id']].iloc[0]
-        with st.form(f"edit_form_{task_to_edit['id']}"):
-            new_task = st.text_input("任务名称", value=task_to_edit['task'])
-            new_start_date = st.date_input("开始时间", value=pd.to_datetime(task_to_edit['start_date']))
-            new_end_date = st.date_input("结束时间", value=pd.to_datetime(task_to_edit['end_date']))
-            new_people = st.text_input("负责人", value=task_to_edit['people'])
-            new_status = st.selectbox("状态", ["Plan", "In Progress", "Stuck", "Complete"], index=["Plan", "In Progress", "Stuck", "Complete"].index(task_to_edit['status']))
-            new_importance = st.selectbox("优先级", ["Urgent and Important", "Important and Not Urgent", "Not Important but Urgent", "Not Important and Not Urgent"], index=["Urgent and Important", "Important and Not Urgent", "Not Important but Urgent", "Not Important and Not Urgent"].index(task_to_edit['importance']))
-            new_view = st.selectbox("视图", ["daily", "weekly", "monthly", "yearly"], index=["daily", "weekly", "monthly", "yearly"].index(task_to_edit['view']))
-            new_notes = st.text_area("备注", value=task_to_edit['notes'])
-            new_attachments = st.text_input("附件", value=task_to_edit['attachments'])
-            submit_button = st.form_submit_button(label="保存修改")
-            
-            if submit_button:
-                update_task(task_to_edit['id'], new_task, new_start_date, new_end_date, new_people, new_status, new_importance, new_view, new_notes, new_attachments)
-                st.success("任务已修改！")
-                del st.session_state['edit_task_id']
-                st.experimental_rerun()  # 刷新页面
 
     # 任务视图展示
     if view_type == "时间视图":
@@ -214,12 +211,7 @@ def main():
     if st.sidebar.button("添加任务"):
         save_data(task, start_date, end_date, people, status, importance, view, notes, attachments)
         st.sidebar.success("任务已添加！")
-        st.experimental_rerun()  # 刷新页面
-
-    # 如果标记了需要重新运行，则调用 rerun
-    if 'rerun' in st.session_state:
-        del st.session_state['rerun']
-        st.experimental_rerun()
+        st.experimental_set_query_params(rerun='true')  # 通过 rerun 刷新页面
 
 # 执行主函数
 if __name__ == "__main__":
