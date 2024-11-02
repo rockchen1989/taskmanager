@@ -4,16 +4,16 @@ import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 from datetime import datetime
 
-# 调试输出：打印所有 secrets 内容，检查是否包含 sheet_key
-st.write(st.secrets)
-
-# 页面配置
+# 页面配置（确保这是第一个 Streamlit 调用）
 st.set_page_config(
     page_title="Task Manager",
     page_icon="✅",
     layout="wide",
     initial_sidebar_state="expanded"
 )
+
+# 调试输出：打印所有 secrets 内容，检查是否包含 sheet_key（完成调试后可以移除此行）
+st.write(st.secrets)
 
 # 设置页面样式
 st.markdown("""
@@ -35,16 +35,27 @@ def connect_to_sheets():
     credentials = ServiceAccountCredentials.from_json_keyfile_dict(
         st.secrets["gcp_service_account"], scope)
     client = gspread.authorize(credentials)
-    sheet = client.open_by_key(st.secrets["sheet_key"]).sheet1
-    return sheet
+    
+    # 测试连接
+    try:
+        sheet = client.open_by_key(st.secrets["sheet_key"]).sheet1
+        st.success("成功连接到 Google Sheets!")
+        return sheet
+    except Exception as e:
+        st.error(f"连接 Google Sheets 时出错: {e}")
+        return None
 
 # 获取数据
 @st.cache_data(ttl=5)
 def load_data():
     sheet = connect_to_sheets()
-    data = sheet.get_all_records()
-    df = pd.DataFrame(data)
-    return df
+    if sheet:
+        data = sheet.get_all_records()
+        df = pd.DataFrame(data)
+        return df
+    else:
+        st.error("未能加载 Google Sheets 数据")
+        return pd.DataFrame()
 
 def display_task_details(task):
     with st.expander(f"📋 {task['Tasks']}", expanded=False):
