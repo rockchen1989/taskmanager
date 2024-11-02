@@ -14,8 +14,13 @@ import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 from datetime import datetime
 
-# 调试输出：打印所有 secrets 内容，检查是否包含 sheet_key
-st.write(st.secrets)
+# 读取 sheet_key 和 gcp_service_account
+try:
+    sheet_key = st.secrets["sheet_key"]
+    gcp_service_account = st.secrets["gcp_service_account"]
+    st.write("成功加载 sheet_key 和 gcp_service_account")
+except KeyError as e:
+    st.error(f"密钥加载错误: 缺少 {e}，请检查 Streamlit Cloud 的 Secrets 配置")
 
 # 设置页面样式
 st.markdown("""
@@ -35,12 +40,12 @@ def connect_to_sheets():
     scope = ['https://spreadsheets.google.com/feeds',
              'https://www.googleapis.com/auth/drive']
     credentials = ServiceAccountCredentials.from_json_keyfile_dict(
-        st.secrets["gcp_service_account"], scope)
+        gcp_service_account, scope)
     client = gspread.authorize(credentials)
     
     # 测试连接
     try:
-        sheet = client.open_by_key(st.secrets["sheet_key"]).sheet1
+        sheet = client.open_by_key(sheet_key).sheet1
         st.success("成功连接到 Google Sheets!")
         return sheet
     except Exception as e:
