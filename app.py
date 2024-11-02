@@ -96,7 +96,7 @@ def display_task_details(task):
         with col1:
             if st.button("删除", key=f"delete_{task['id']}"):
                 delete_task(task['id'])
-                st.experimental_rerun()
+                st.experimental_update()  # 刷新页面以立刻反映删除操作
         with col2:
             if st.button("修改", key=f"edit_{task['id']}"):
                 with st.form(f"edit_form_{task['id']}"):
@@ -114,11 +114,11 @@ def display_task_details(task):
                     if submit_button:
                         update_task(task['id'], new_task, new_start_date, new_end_date, new_people, new_status, new_importance, new_view, new_notes, new_attachments)
                         st.success("任务已修改！")
-                        st.experimental_rerun()  # 通过 rerun 刷新页面
+                        st.experimental_update()  # 刷新页面以立刻反映修改操作
         with col3:
             if st.button("完成", key=f"complete_{task['id']}"):
                 complete_task(task['id'])
-                st.experimental_rerun()
+                st.experimental_update()  # 刷新页面以立刻反映完成操作
 
 # 页面主逻辑
 def main():
@@ -209,7 +209,7 @@ def main():
     if st.sidebar.button("添加任务"):
         save_data(task, start_date, end_date, people, status, importance, view, notes, attachments)
         st.sidebar.success("任务已添加！")
-        st.experimental_rerun()  # 通过 rerun 刷新页面
+        st.experimental_update()  # 通过更新刷新页面
 
 # 执行主函数
 if __name__ == "__main__":
