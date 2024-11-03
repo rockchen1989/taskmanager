@@ -16,7 +16,9 @@ def init_db():
     try:
         conn = sqlite3.connect("tasks.db", check_same_thread=False)
         c = conn.cursor()
-        c.execute('''CREATE TABLE IF NOT EXISTS tasks (
+        # 删除旧表（如果存在）并创建新表
+        c.execute('DROP TABLE IF EXISTS tasks')
+        c.execute('''CREATE TABLE tasks (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     task TEXT NOT NULL,
                     start_date TEXT NOT NULL,
@@ -36,27 +38,27 @@ def init_db():
         return None
 
 # 从数据库中加载数据
-@st.cache_data(ttl=60)  # 缓存1分钟
+@st.cache_data(ttl=60)
 def load_data():
     try:
         conn = init_db()
         if conn is not None:
-            query = """
-            SELECT 
-                id, task, 
-                start_date, end_date,
-                people, status, 
-                importance, view,
-                notes, attachments,
-                created_at
-            FROM tasks
-            ORDER BY created_at DESC
-            """
-            df = pd.read_sql(query, conn)
+            df = pd.read_sql_query("""
+                SELECT 
+                    id, task, start_date, end_date,
+                    people, status, importance, view,
+                    notes, attachments, created_at
+                FROM tasks
+                ORDER BY created_at DESC
+            """, conn)
             return df
     except Exception as e:
         st.error(f"加载数据错误: {str(e)}")
-        return pd.DataFrame()
+        return pd.DataFrame(columns=[
+            'id', 'task', 'start_date', 'end_date',
+            'people', 'status', 'importance', 'view',
+            'notes', 'attachments', 'created_at'
+        ])
     finally:
         if conn:
             conn.close()
@@ -200,7 +202,6 @@ def display_task_details(task):
                                      new_notes, new_attachments):
                             st.cache_data.clear()
                             st.success("修改成功！")
-                            # 关闭修改表单
                             st.session_state[f"show_edit_form_{task['id']}"] = False
                             st.rerun()
 
@@ -269,7 +270,7 @@ def main():
                     display_task_details(task)
 
         with tab4:
-            st.subheader("年视图 - 优���级分类")
+            st.subheader("年视图 - 优级分类")
             for priority in ["Urgent and Important", "Important and Not Urgent", "Not Important but Urgent", "Not Important and Not Urgent"]:
                 st.write(f"**{priority}**")
                 yearly_tasks = tasks[(tasks['view'].str.lower() == 'yearly') & (tasks['importance'] == priority) & (tasks['status'] != 'Complete')]
