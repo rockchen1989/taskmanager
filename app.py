@@ -13,39 +13,61 @@ st.set_page_config(
 
 # 初始化数据库连接
 def init_db():
-    conn = sqlite3.connect("tasks.db")
-    c = conn.cursor()
-    c.execute('''CREATE TABLE IF NOT EXISTS tasks (
+    try:
+        conn = sqlite3.connect("tasks.db", check_same_thread=False)
+        c = conn.cursor()
+        c.execute('''CREATE TABLE IF NOT EXISTS tasks (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    task TEXT,
-                    start_date TEXT,
-                    end_date TEXT,
+                    task TEXT NOT NULL,
+                    start_date TEXT NOT NULL,
+                    end_date TEXT NOT NULL,
                     people TEXT,
-                    status TEXT,
-                    importance TEXT,
-                    view TEXT,
+                    status TEXT NOT NULL,
+                    importance TEXT NOT NULL,
+                    view TEXT NOT NULL,
                     notes TEXT,
-                    attachments TEXT
+                    attachments TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )''')
-    conn.commit()
-    return conn
+        conn.commit()
+        return conn
+    except Exception as e:
+        st.error(f"数据库连接错误: {str(e)}")
+        return None
 
 # 从数据库中加载数据
 @st.cache_data(ttl=1)
 def load_data():
-    conn = init_db()
-    df = pd.read_sql("SELECT * FROM tasks", conn)
-    conn.close()
-    return df
+    try:
+        conn = init_db()
+        if conn is not None:
+            df = pd.read_sql("SELECT * FROM tasks", conn)
+            conn.close()
+            return df
+    except Exception as e:
+        st.error(f"加载数据错误: {str(e)}")
+        return pd.DataFrame()
 
 # 将数据保存到数据库
 def save_data(task, start_date, end_date, people, status, importance, view, notes, attachments):
-    conn = init_db()
-    c = conn.cursor()
-    c.execute("INSERT INTO tasks (task, start_date, end_date, people, status, importance, view, notes, attachments) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-              (task, start_date, end_date, people, status, importance, view, notes, attachments))
-    conn.commit()
-    conn.close()
+    try:
+        conn = init_db()
+        if conn is not None:
+            c = conn.cursor()
+            c.execute("""
+                INSERT INTO tasks (task, start_date, end_date, people, status, importance, view, notes, attachments)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (task, start_date.strftime('%Y-%m-%d'), end_date.strftime('%Y-%m-%d'),
+                 people, status, importance, view, notes, attachments))
+            conn.commit()
+            conn.close()
+            # 清除缓存
+            st.cache_data.clear()
+            return True
+        return False
+    except Exception as e:
+        st.error(f"保存数据错误: {str(e)}")
+        return False
 
 # 更新任务数据
 def update_task(task_id, task, start_date, end_date, people, status, importance, view, notes, attachments):
@@ -58,19 +80,37 @@ def update_task(task_id, task, start_date, end_date, people, status, importance,
 
 # 从数据库中删除任务
 def delete_task(task_id):
-    conn = init_db()
-    c = conn.cursor()
-    c.execute("DELETE FROM tasks WHERE id=?", (task_id,))
-    conn.commit()
-    conn.close()
+    try:
+        conn = init_db()
+        if conn is not None:
+            c = conn.cursor()
+            c.execute("DELETE FROM tasks WHERE id=?", (task_id,))
+            conn.commit()
+            conn.close()
+            # 清除缓存
+            st.cache_data.clear()
+            return True
+        return False
+    except Exception as e:
+        st.error(f"删除任务错误: {str(e)}")
+        return False
 
 # 将任务状态更新为完成
 def complete_task(task_id):
-    conn = init_db()
-    c = conn.cursor()
-    c.execute("UPDATE tasks SET status='Complete' WHERE id=?", (task_id,))
-    conn.commit()
-    conn.close()
+    try:
+        conn = init_db()
+        if conn is not None:
+            c = conn.cursor()
+            c.execute("UPDATE tasks SET status='Complete' WHERE id=?", (task_id,))
+            conn.commit()
+            conn.close()
+            # 清除缓存
+            st.cache_data.clear()
+            return True
+        return False
+    except Exception as e:
+        st.error(f"完成任务错误: {str(e)}")
+        return False
 
 # 显示任务详情
 def display_task_details(task):
@@ -195,21 +235,27 @@ def main():
             display_task_details(task)
 
     # 新增任务表单
-    st.sidebar.title("新增任务")
-    task = st.sidebar.text_input("任务名称")
-    start_date = st.sidebar.date_input("开始时间")
-    end_date = st.sidebar.date_input("结束时间")
-    people = st.sidebar.text_input("负责人")
-    status = st.sidebar.selectbox("状态", ["Plan", "In Progress", "Stuck", "Complete"])
-    importance = st.sidebar.selectbox("优先级", ["Urgent and Important", "Important and Not Urgent", "Not Important but Urgent", "Not Important and Not Urgent"])
-    view = st.sidebar.selectbox("视图", ["daily", "weekly", "monthly", "yearly"])
-    notes = st.sidebar.text_area("备注")
-    attachments = st.sidebar.text_input("附件")
+    with st.sidebar.form(key="add_task_form"):
+        st.title("新增任务")
+        task = st.text_input("任务名称")
+        start_date = st.date_input("开始时间")
+        end_date = st.date_input("结束时间")
+        people = st.text_input("负责人")
+        status = st.selectbox("状态", ["Plan", "In Progress", "Stuck", "Complete"])
+        importance = st.selectbox("优先级", ["Urgent and Important", "Important and Not Urgent",
+                                         "Not Important but Urgent", "Not Important and Not Urgent"])
+        view = st.selectbox("视图", ["daily", "weekly", "monthly", "yearly"])
+        notes = st.text_area("备注")
+        attachments = st.text_input("附件")
 
-    if st.sidebar.button("添加任务"):
-        save_data(task, start_date, end_date, people, status, importance, view, notes, attachments)
-        st.sidebar.success("任务已添加！")
-        st.experimental_update()  # 通过更新刷新页面
+        if st.form_submit_button("添加任务"):
+            if task.strip():  # 确保任务名不为空
+                if save_data(task, start_date, end_date, people, status,
+                           importance, view, notes, attachments):
+                    st.success("任务已添加！")
+                    st.rerun()
+            else:
+                st.error("任务名称不能为空！")
 
 # 执行主函数
 if __name__ == "__main__":
