@@ -36,17 +36,30 @@ def init_db():
         return None
 
 # 从数据库中加载数据
-@st.cache_data(ttl=1)
+@st.cache_data(ttl=60)  # 缓存1分钟
 def load_data():
     try:
         conn = init_db()
         if conn is not None:
-            df = pd.read_sql("SELECT * FROM tasks", conn)
-            conn.close()
+            query = """
+            SELECT 
+                id, task, 
+                start_date, end_date,
+                people, status, 
+                importance, view,
+                notes, attachments,
+                created_at
+            FROM tasks
+            ORDER BY created_at DESC
+            """
+            df = pd.read_sql(query, conn)
             return df
     except Exception as e:
         st.error(f"加载数据错误: {str(e)}")
         return pd.DataFrame()
+    finally:
+        if conn:
+            conn.close()
 
 # 将数据保存到数据库
 def save_data(task, start_date, end_date, people, status, importance, view, notes, attachments):
@@ -207,6 +220,19 @@ def main():
         
     st.title("🎯 Task Manager")
     
+    # 添加导出按钮
+    col1, col2 = st.columns([1, 5])
+    with col1:
+        tasks_df = load_data()
+        if not tasks_df.empty:
+            csv = tasks_df.to_csv(index=False).encode('utf-8')
+            st.download_button(
+                label="📥 导出任务",
+                data=csv,
+                file_name=f"tasks_{datetime.now().strftime('%Y%m%d')}.csv",
+                mime="text/csv",
+            )
+    
     # 侧边栏视图选择
     st.sidebar.title("视图选择")
     view_type = st.sidebar.radio("选择视图类型", ["时间视图", "优先级视图", "已完成任务"])
@@ -243,7 +269,7 @@ def main():
                     display_task_details(task)
 
         with tab4:
-            st.subheader("年视图 - 优先级分类")
+            st.subheader("年视图 - 优���级分类")
             for priority in ["Urgent and Important", "Important and Not Urgent", "Not Important but Urgent", "Not Important and Not Urgent"]:
                 st.write(f"**{priority}**")
                 yearly_tasks = tasks[(tasks['view'].str.lower() == 'yearly') & (tasks['importance'] == priority) & (tasks['status'] != 'Complete')]
