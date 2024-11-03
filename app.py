@@ -114,7 +114,7 @@ def display_task_details(task):
                     if submit_button:
                         update_task(task['id'], new_task, new_start_date, new_end_date, new_people, new_status, new_importance, new_view, new_notes, new_attachments)
                         st.success("任务已修改！")
-                        st.experimental_update()  # 刷新页面以立刻反映修改操作
+                        st.experimental_rerun()  # 刷新页面以立刻反映修改操作
         with col3:
             if st.button("完成", key=f"complete_{task['id']}"):
                 complete_task(task['id'])
